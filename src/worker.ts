@@ -1,6 +1,7 @@
 /// <reference lib="webworker" />
 
 import { AutoModel, AutoProcessor, RawImage, env } from '@huggingface/transformers'
+import { needsWasmFallback, type InferenceBackend } from './maskQuality'
 
 const MODEL_ID = 'studioludens/birefnet-lite-512'
 
@@ -9,7 +10,7 @@ env.useBrowserCache = true
 
 let model: Awaited<ReturnType<typeof AutoModel.from_pretrained>> | null = null
 let processor: Awaited<ReturnType<typeof AutoProcessor.from_pretrained>> | null = null
-let backend = ''
+let backend: InferenceBackend | '' = ''
 
 function send(message: Record<string, unknown>, transfer: Transferable[] = []) {
   self.postMessage(message, { transfer })
@@ -46,18 +47,25 @@ async function loadModel() {
   }
 
   if (!model) {
-    model = await AutoModel.from_pretrained(MODEL_ID, {
-      device: 'wasm',
-      dtype: 'fp32',
-      progress_callback: progressCallback,
-    })
-    backend = 'WASM'
+    await loadWasmModel()
   }
 
   processor = await AutoProcessor.from_pretrained(MODEL_ID, {
     progress_callback: progressCallback,
   })
   send({ type: 'ready', backend })
+}
+
+async function loadWasmModel() {
+  const previousModel = model
+  model = null
+  if (previousModel) await previousModel.dispose()
+  model = await AutoModel.from_pretrained(MODEL_ID, {
+    device: 'wasm',
+    dtype: 'fp32',
+    progress_callback: progressCallback,
+  })
+  backend = 'WASM'
 }
 
 self.addEventListener('message', async (event: MessageEvent) => {
@@ -72,8 +80,18 @@ self.addEventListener('message', async (event: MessageEvent) => {
     const originalWidth = image.width
     const originalHeight = image.height
     const inputs = await processor!(image)
-    const output = await model!({ input_image: inputs.pixel_values })
-    const logits = output.output_image[0]
+    let output = await model!({ input_image: inputs.pixel_values })
+    let logits = output.output_image[0]
+
+    if (backend && needsWasmFallback(backend, logits.data)) {
+      console.warn('WebGPU returned a degenerate foreground mask, retrying with WASM.')
+      send({ type: 'status', status: 'loading', messageKey: 'gpuFallback' })
+      await loadWasmModel()
+      send({ type: 'status', status: 'processing', messageKey: 'detectingEdges' })
+      output = await model!({ input_image: inputs.pixel_values })
+      logits = output.output_image[0]
+    }
+
     const mask = await RawImage.fromTensor(logits.sigmoid().mul(255).to('uint8')).resize(
       originalWidth,
       originalHeight,
