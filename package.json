@@ -10,7 +10,7 @@
     "test": "node --import tsx --test src/*.test.ts"
   },
   "dependencies": {
-    "@huggingface/transformers": "^3.7.3",
+    "@huggingface/transformers": "^4.2.0",
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
