@@ -28,7 +28,7 @@ function progressCallback(info: Record<string, unknown>) {
 async function loadModel() {
   if (model && processor) return
 
-  send({ type: 'status', status: 'loading', message: '正在下载 AI 模型（首次约 94 MB）' })
+  send({ type: 'status', status: 'loading', messageKey: 'modelDownloading' })
 
   const hasWebGpu = 'gpu' in navigator
   if (hasWebGpu) {
@@ -41,7 +41,7 @@ async function loadModel() {
       backend = 'WebGPU'
     } catch (error) {
       console.warn('WebGPU unavailable, using WASM fallback.', error)
-      send({ type: 'status', status: 'loading', message: '显卡推理不可用，正在切换兼容模式' })
+      send({ type: 'status', status: 'loading', messageKey: 'gpuFallback' })
     }
   }
 
@@ -65,7 +65,7 @@ self.addEventListener('message', async (event: MessageEvent) => {
 
   try {
     await loadModel()
-    send({ type: 'status', status: 'processing', message: '正在识别主体与细节边缘' })
+    send({ type: 'status', status: 'processing', messageKey: 'detectingEdges' })
 
     const blob = new Blob([event.data.buffer], { type: event.data.mime })
     const image = (await RawImage.fromBlob(blob)).rgb()

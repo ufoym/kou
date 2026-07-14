@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;600;700;800&display=swap');
 
 :root {
   font-family: 'DM Sans', 'Noto Sans SC', sans-serif;
@@ -14,6 +14,10 @@
   --paper: #fffefa;
   --line: #dcdcd3;
 }
+
+html[lang="zh-TW"] { font-family: 'DM Sans', 'Noto Sans TC', sans-serif; }
+html[lang="ja"] { font-family: 'DM Sans', 'Noto Sans JP', sans-serif; }
+html[lang="ko"] { font-family: 'DM Sans', 'Noto Sans KR', sans-serif; }
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
@@ -50,6 +54,11 @@ nav { display: flex; align-items: center; gap: 30px; color: #4d4e48; font-size: 
 nav a { transition: color .2s ease; }
 nav a:hover { color: var(--blue); }
 .github-link { display: flex; align-items: center; gap: 7px; padding: 9px 13px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.55); }
+.language-select { position: relative; display: flex; align-items: center; gap: 6px; min-width: 122px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.55); }
+.language-select svg { flex: 0 0 auto; pointer-events: none; }
+.language-select svg:last-child { position: absolute; right: 8px; }
+.language-select select { width: 100%; padding: 0 20px 0 0; border: 0; outline: 0; appearance: none; color: inherit; background: transparent; cursor: pointer; font-size: 13px; font-weight: 600; }
+.language-select:focus-within { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(33,78,229,.12); }
 
 .hero { padding: 74px 0 48px; text-align: center; max-width: 900px; margin: auto; }
 .eyebrow, .success-pill {
@@ -191,6 +200,7 @@ footer a { display: inline-flex; align-items: center; gap: 7px; font-weight: 700
 @media (max-width: 800px) {
   .site-header, main, footer { width: min(100% - 24px, 1180px); }
   nav > a:not(.github-link) { display: none; }
+  nav { gap: 10px; }
   .hero { padding-top: 52px; }
   .hero h1 { font-size: clamp(43px, 12vw, 68px); }
   .hero-copy { font-size: 16px; }
@@ -214,6 +224,8 @@ footer a { display: inline-flex; align-items: center; gap: 7px; font-weight: 700
 @media (max-width: 520px) {
   .site-header { height: 68px; }
   .github-link { font-size: 0; gap: 0; }
+  .github-link span { display: none; }
+  .language-select { min-width: 108px; }
   .hero { padding: 45px 0 34px; }
   .hero h1 { letter-spacing: -.06em; }
   .trust-row { font-size: 11px; }

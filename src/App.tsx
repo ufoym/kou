@@ -1,17 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  ArrowDownToLine,
-  Check,
-  Github,
-  ImagePlus,
-  LockKeyhole,
-  RefreshCw,
-  ShieldCheck,
-  Sparkles,
-  Upload,
-  X,
-  Zap,
+  ArrowDownToLine, Check, ChevronDown, Github, Globe2, ImagePlus, LockKeyhole,
+  RefreshCw, ShieldCheck, Sparkles, Upload, X, Zap,
 } from 'lucide-react'
+import { getInitialLocale, localeNames, locales, translate, type Locale, type TranslationKey } from './i18n'
 
 type Phase = 'idle' | 'loading' | 'processing' | 'done' | 'error'
 type PreviewBackground = 'grid' | 'light' | 'dark'
@@ -19,9 +11,10 @@ type PreviewBackground = 'grid' | 'light' | 'dark'
 const MAX_FILE_SIZE = 30 * 1024 * 1024
 
 function App() {
+  const [locale, setLocale] = useState<Locale>(getInitialLocale)
   const [phase, setPhase] = useState<Phase>('idle')
   const [dragging, setDragging] = useState(false)
-  const [message, setMessage] = useState('')
+  const [messageKey, setMessageKey] = useState<TranslationKey>('preparingLocal')
   const [progress, setProgress] = useState(0)
   const [originalUrl, setOriginalUrl] = useState('')
   const [resultUrl, setResultUrl] = useState('')
@@ -32,6 +25,17 @@ function App() {
   const [background, setBackground] = useState<PreviewBackground>('grid')
   const inputRef = useRef<HTMLInputElement>(null)
   const workerRef = useRef<Worker | null>(null)
+  const t = (key: TranslationKey) => translate(locale, key)
+
+  useEffect(() => {
+    localStorage.setItem('kou-locale', locale)
+    document.documentElement.lang = locale
+    document.title = t('metaTitle')
+    const setMeta = (selector: string, content: string) => document.querySelector<HTMLMetaElement>(selector)?.setAttribute('content', content)
+    setMeta('meta[name="description"]', t('metaDescription'))
+    setMeta('meta[property="og:title"]', t('metaTitle'))
+    setMeta('meta[property="og:description"]', t('ogDescription'))
+  }, [locale])
 
   useEffect(() => {
     const worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' })
@@ -41,7 +45,7 @@ function App() {
       if (data.type === 'progress') setProgress(data.progress)
       if (data.type === 'status') {
         setPhase(data.status)
-        setMessage(data.message)
+        setMessageKey(data.messageKey)
       }
       if (data.type === 'ready') setBackend(data.backend)
       if (data.type === 'result') {
@@ -57,30 +61,28 @@ function App() {
       }
       if (data.type === 'error') {
         setPhase('error')
-        setMessage('处理失败。请使用最新版 Chrome 或 Edge，并确认设备有足够内存。')
+        setMessageKey('genericError')
         console.error(data.message)
       }
     }
     return () => worker.terminate()
   }, [])
 
-  useEffect(() => {
-    return () => {
-      if (originalUrl) URL.revokeObjectURL(originalUrl)
-      if (resultUrl) URL.revokeObjectURL(resultUrl)
-    }
+  useEffect(() => () => {
+    if (originalUrl) URL.revokeObjectURL(originalUrl)
+    if (resultUrl) URL.revokeObjectURL(resultUrl)
   }, [originalUrl, resultUrl])
 
   const processFile = async (file?: File) => {
     if (!file) return
     if (!file.type.startsWith('image/')) {
       setPhase('error')
-      setMessage('请选择 JPG、PNG 或 WebP 图片。')
+      setMessageKey('invalidType')
       return
     }
     if (file.size > MAX_FILE_SIZE) {
       setPhase('error')
-      setMessage('图片不能超过 30 MB。')
+      setMessageKey('tooLarge')
       return
     }
 
@@ -96,18 +98,14 @@ function App() {
       return URL.createObjectURL(file)
     })
     setPhase('loading')
-    setMessage('正在准备本地 AI 引擎')
+    setMessageKey('preparingLocal')
 
     const buffer = await file.arrayBuffer()
-    workerRef.current?.postMessage(
-      { type: 'process', buffer, mime: file.type || 'image/jpeg' },
-      [buffer],
-    )
+    workerRef.current?.postMessage({ type: 'process', buffer, mime: file.type || 'image/jpeg' }, [buffer])
   }
 
   const reset = () => {
     setPhase('idle')
-    setMessage('')
     setProgress(0)
     setFileName('')
     setDimensions('')
@@ -133,32 +131,41 @@ function App() {
   }
 
   const isBusy = phase === 'loading' || phase === 'processing'
+  const backgroundLabels: Record<PreviewBackground, TranslationKey> = {
+    grid: 'transparentGrid', light: 'lightBackground', dark: 'darkBackground',
+  }
 
   return (
     <div className="app-shell">
       <header className="site-header">
-        <a className="brand" href="/kou/" aria-label="Kou 首页">
-          <span className="brand-mark">K</span>
-          <span>Kou</span>
+        <a className="brand" href="/kou/" aria-label={t('home')}>
+          <span className="brand-mark">K</span><span>Kou</span>
         </a>
-        <nav aria-label="主导航">
-          <a href="#how">如何使用</a>
-          <a href="#privacy">隐私</a>
+        <nav aria-label={t('nav')}>
+          <a href="#how">{t('howNav')}</a>
+          <a href="#privacy">{t('privacyNav')}</a>
+          <div className="language-select">
+            <Globe2 size={16} aria-hidden="true" />
+            <select value={locale} onChange={(event) => setLocale(event.target.value as Locale)} aria-label={t('language')}>
+              {locales.map((item) => <option key={item} value={item}>{localeNames[item]}</option>)}
+            </select>
+            <ChevronDown size={14} aria-hidden="true" />
+          </div>
           <a className="github-link" href="https://github.com/ufoym/kou" target="_blank" rel="noreferrer">
-            <Github size={17} /> GitHub
+            <Github size={17} /> <span>GitHub</span>
           </a>
         </nav>
       </header>
 
       <main>
         <section className="hero">
-          <div className="eyebrow"><Sparkles size={15} /> AI 抠图，就在你的浏览器里</div>
-          <h1>一键去掉背景。<br /><span>图片无需上传。</span></h1>
-          <p className="hero-copy">由 BiRefNet 驱动，在你的设备上完成所有处理。免费、无水印，也不保存任何图片。</p>
+          <div className="eyebrow"><Sparkles size={15} /> {t('eyebrow')}</div>
+          <h1>{t('hero1')}<br /><span>{t('hero2')}</span></h1>
+          <p className="hero-copy">{t('heroCopy')}</p>
           <div className="trust-row">
-            <span><ShieldCheck size={17} /> 本地处理</span>
-            <span><Zap size={17} /> WebGPU 加速</span>
-            <span><Check size={17} /> 免费导出</span>
+            <span><ShieldCheck size={17} /> {t('localProcessing')}</span>
+            <span><Zap size={17} /> {t('webgpu')}</span>
+            <span><Check size={17} /> {t('freeExport')}</span>
           </div>
         </section>
 
@@ -169,123 +176,87 @@ function App() {
               onDragEnter={(event) => { event.preventDefault(); setDragging(true) }}
               onDragOver={(event) => event.preventDefault()}
               onDragLeave={(event) => { if (event.currentTarget === event.target) setDragging(false) }}
-              onDrop={(event) => {
-                event.preventDefault()
-                setDragging(false)
-                void processFile(event.dataTransfer.files[0])
-              }}
+              onDrop={(event) => { event.preventDefault(); setDragging(false); void processFile(event.dataTransfer.files[0]) }}
             >
               <div className="upload-icon"><ImagePlus size={34} strokeWidth={1.7} /></div>
-              <h2>{phase === 'error' ? '换一张图片再试试' : '把图片拖到这里'}</h2>
-              <p>或从你的设备中选择</p>
+              <h2>{phase === 'error' ? t('tryAnother') : t('dropHere')}</h2>
+              <p>{t('chooseFromDevice')}</p>
               <button className="primary-button" onClick={() => inputRef.current?.click()}>
-                <Upload size={18} /> 选择图片
+                <Upload size={18} /> {t('chooseImage')}
               </button>
-              <input
-                ref={inputRef}
-                type="file"
-                hidden
-                accept="image/jpeg,image/png,image/webp"
-                onChange={(event) => void processFile(event.target.files?.[0])}
-              />
-              <span className="file-hint">支持 JPG、PNG、WebP · 最大 30 MB</span>
-              {phase === 'error' && <div className="error-message"><X size={16} /> {message}</div>}
+              <input ref={inputRef} type="file" hidden accept="image/jpeg,image/png,image/webp" onChange={(event) => void processFile(event.target.files?.[0])} />
+              <span className="file-hint">{t('fileHint')}</span>
+              {phase === 'error' && <div className="error-message"><X size={16} /> {t(messageKey)}</div>}
             </div>
           ) : isBusy ? (
             <div className="processing-panel">
               <div className="processing-preview checkerboard">
-                {originalUrl && <img src={originalUrl} alt="待处理图片" />}
+                {originalUrl && <img src={originalUrl} alt={t('pendingAlt')} />}
                 <div className="scan-line" />
               </div>
               <div className="processing-copy">
                 <div className="spinner"><Sparkles size={26} /></div>
-                <p className="step-label">{phase === 'loading' ? '准备模型' : '正在抠图'}</p>
-                <h2>{message}</h2>
-                <p>{phase === 'loading' ? '模型仅在首次使用时下载，之后会保存在浏览器缓存中。' : '所有计算都在本机完成，请保持此页面打开。'}</p>
+                <p className="step-label">{phase === 'loading' ? t('prepareModel') : t('removingBackground')}</p>
+                <h2>{t(messageKey)}</h2>
+                <p>{phase === 'loading' ? t('firstDownload') : t('keepOpen')}</p>
                 <div className="progress-track"><span style={{ width: `${phase === 'processing' ? 100 : progress}%` }} /></div>
-                <span className="progress-text">{phase === 'loading' ? `${progress}%` : 'AI 正在工作…'}</span>
+                <span className="progress-text">{phase === 'loading' ? `${progress}%` : t('aiWorking')}</span>
               </div>
             </div>
           ) : (
             <div className="result-panel">
               <div className="result-topbar">
-                <div>
-                  <span className="success-pill"><Check size={14} /> 处理完成</span>
-                  <h2>背景已移除</h2>
-                </div>
-                <button className="icon-button" onClick={reset} aria-label="关闭结果"><X size={20} /></button>
+                <div><span className="success-pill"><Check size={14} /> {t('complete')}</span><h2>{t('removed')}</h2></div>
+                <button className="icon-button" onClick={reset} aria-label={t('closeResult')}><X size={20} /></button>
               </div>
-
               <div className="comparison-wrap">
                 <div className={`comparison background-${background}`}>
-                  <img className="result-image" src={resultUrl} alt="透明背景抠图结果" />
+                  <img className="result-image" src={resultUrl} alt={t('resultAlt')} />
                   <div className="original-layer" style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}>
-                    <img src={originalUrl} alt="原始图片" />
+                    <img src={originalUrl} alt={t('originalAlt')} />
                   </div>
-                  <div className="comparison-line" style={{ left: `${position}%` }}>
-                    <span className="comparison-handle">↔</span>
-                  </div>
-                  <input
-                    className="comparison-slider"
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={position}
-                    onChange={(event) => setPosition(Number(event.target.value))}
-                    aria-label="拖动比较原图和抠图结果"
-                  />
-                  <span className="image-label label-before">原图</span>
-                  <span className="image-label label-after">结果</span>
+                  <div className="comparison-line" style={{ left: `${position}%` }}><span className="comparison-handle">↔</span></div>
+                  <input className="comparison-slider" type="range" min="0" max="100" value={position} onChange={(event) => setPosition(Number(event.target.value))} aria-label={t('compareLabel')} />
+                  <span className="image-label label-before">{t('before')}</span><span className="image-label label-after">{t('after')}</span>
                 </div>
               </div>
-
               <div className="result-controls">
                 <div className="background-control">
-                  <span>预览背景</span>
-                  <div className="swatches" role="group" aria-label="预览背景">
+                  <span>{t('previewBackground')}</span>
+                  <div className="swatches" role="group" aria-label={t('previewBackground')}>
                     {(['grid', 'light', 'dark'] as PreviewBackground[]).map((item) => (
-                      <button
-                        key={item}
-                        className={`swatch swatch-${item} ${background === item ? 'active' : ''}`}
-                        onClick={() => setBackground(item)}
-                        aria-label={{ grid: '透明网格', light: '浅色背景', dark: '深色背景' }[item]}
-                      />
+                      <button key={item} className={`swatch swatch-${item} ${background === item ? 'active' : ''}`} onClick={() => setBackground(item)} aria-label={t(backgroundLabels[item])} />
                     ))}
                   </div>
                 </div>
-                <div className="result-meta">
-                  <span>{dimensions}</span>
-                  <span>{backend}</span>
-                  <span>PNG</span>
-                </div>
-                <button className="secondary-button" onClick={reset}><RefreshCw size={17} /> 换一张</button>
-                <button className="primary-button download-button" onClick={download}><ArrowDownToLine size={18} /> 下载透明 PNG</button>
+                <div className="result-meta"><span>{dimensions}</span><span>{backend}</span><span>PNG</span></div>
+                <button className="secondary-button" onClick={reset}><RefreshCw size={17} /> {t('another')}</button>
+                <button className="primary-button download-button" onClick={download}><ArrowDownToLine size={18} /> {t('download')}</button>
               </div>
             </div>
           )}
         </section>
 
         <section className="how-section" id="how">
-          <div className="section-kicker">简单三步</div>
-          <h2>从照片到透明素材，只需几秒</h2>
+          <div className="section-kicker">{t('threeSteps')}</div><h2>{t('seconds')}</h2>
           <div className="steps">
-            <article><span>01</span><Upload size={24} /><h3>选择图片</h3><p>拖入照片，或从设备中选择 JPG、PNG、WebP 文件。</p></article>
-            <article><span>02</span><Sparkles size={24} /><h3>本地抠图</h3><p>BiRefNet 在浏览器中识别主体、发丝和复杂边缘。</p></article>
-            <article><span>03</span><ArrowDownToLine size={24} /><h3>下载结果</h3><p>预览前后效果，免费导出高清透明 PNG。</p></article>
+            <article><span>01</span><Upload size={24} /><h3>{t('step1Title')}</h3><p>{t('step1Copy')}</p></article>
+            <article><span>02</span><Sparkles size={24} /><h3>{t('step2Title')}</h3><p>{t('step2Copy')}</p></article>
+            <article><span>03</span><ArrowDownToLine size={24} /><h3>{t('step3Title')}</h3><p>{t('step3Copy')}</p></article>
           </div>
         </section>
 
         <section className="privacy-section" id="privacy">
           <div className="privacy-icon"><LockKeyhole size={28} /></div>
-          <div><div className="section-kicker">隐私优先</div><h2>你的图片，只属于你。</h2></div>
-          <p>没有上传，没有服务器，也没有账号。浏览器直接读取图片并运行 AI 模型；关闭页面后，图片不会留在任何远端系统中。</p>
+          <div><div className="section-kicker">{t('privacyFirst')}</div><h2>{t('yours')}</h2></div>
+          <p>{t('privacyCopy')}</p>
         </section>
       </main>
 
       <footer>
         <div className="brand"><span className="brand-mark">K</span><span>Kou</span></div>
-        <p>基于开源 BiRefNet · 完全在浏览器中运行</p>
-        <a href="https://github.com/ufoym/kou" target="_blank" rel="noreferrer"><Github size={17} /> 查看源码</a>
+        <p>{t('footer')}</p>
+        <a href="https://github.com/ufoym/kou" target="_blank" rel="noreferrer"><Github size={17} /> {t('source')}</a>
       </footer>
     </div>
   )
