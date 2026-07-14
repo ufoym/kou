@@ -73,8 +73,15 @@ nav a:hover { color: var(--blue); }
   font-weight: 700;
 }
 
-.hero h1 { margin: 19px 0 18px; font-size: clamp(48px, 7.4vw, 88px); line-height: .98; letter-spacing: -.072em; font-weight: 800; }
+.hero h1 { margin: 19px 0 18px; font-size: clamp(44px, 6.4vw, 76px); line-height: .98; letter-spacing: -.072em; font-weight: 800; white-space: nowrap; }
 .hero h1 span { color: var(--blue); }
+html[lang="en"] .hero h1 { font-size: clamp(42px, 5.8vw, 68px); }
+html[lang="ja"] .hero h1,
+html[lang="ko"] .hero h1 { font-size: clamp(42px, 6vw, 72px); }
+html[lang="es"] .hero h1,
+html[lang="pt-BR"] .hero h1 { font-size: clamp(40px, 5.4vw, 64px); }
+html[lang="fr"] .hero h1 { font-size: clamp(38px, 4.9vw, 58px); }
+html[lang="de"] .hero h1 { font-size: clamp(36px, 4.4vw, 52px); }
 .hero-copy { max-width: 630px; margin: auto; color: var(--muted); font-size: 18px; line-height: 1.7; }
 .trust-row { margin-top: 26px; display: flex; justify-content: center; gap: 24px; color: #464741; font-size: 13px; font-weight: 600; }
 .trust-row span { display: inline-flex; align-items: center; gap: 6px; }
@@ -202,7 +209,14 @@ footer a { display: inline-flex; align-items: center; gap: 7px; font-weight: 700
   nav > a:not(.github-link) { display: none; }
   nav { gap: 10px; }
   .hero { padding-top: 52px; }
-  .hero h1 { font-size: clamp(43px, 12vw, 68px); }
+  .hero h1 { font-size: min(10vw, 64px); }
+  html[lang="en"] .hero h1 { font-size: min(8vw, 58px); }
+  html[lang="ja"] .hero h1 { font-size: min(7.5vw, 58px); }
+  html[lang="ko"] .hero h1 { font-size: min(6.5vw, 54px); }
+  html[lang="es"] .hero h1,
+  html[lang="pt-BR"] .hero h1 { font-size: min(6.5vw, 52px); }
+  html[lang="fr"] .hero h1 { font-size: min(5.5vw, 48px); }
+  html[lang="de"] .hero h1 { font-size: min(4.9vw, 44px); }
   .hero-copy { font-size: 16px; }
   .trust-row { gap: 12px; flex-wrap: wrap; }
   .workspace { margin-bottom: 80px; border-radius: 21px; }

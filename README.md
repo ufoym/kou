@@ -1,32 +1,36 @@
 # Kou
 
-完全在浏览器本地运行的 AI 背景抠图工具。图片不会上传到服务器，处理结果可直接导出为透明 PNG。
+An AI-powered background removal tool that runs entirely in your browser. Images are never uploaded to a server, and results can be exported directly as transparent PNG files.
 
-## 技术方案
+## How It Works
 
-- React + Vite 静态站点，可直接部署到 GitHub Pages
-- Transformers.js + Web Worker，避免推理阻塞页面
-- WebGPU 优先，WASM 兼容回退
-- 使用浏览器专用的 `studioludens/birefnet-lite-512` ONNX 模型。它基于 `ZhengPeng7/BiRefNet_lite`，与参考 Space 使用的 BiRefNet 属于同一模型架构
-- 模型首次使用时从 Hugging Face 下载约 94 MB，之后由浏览器缓存
+- Built as a static React and Vite site that can be deployed directly to GitHub Pages
+- Runs inference with Transformers.js in a Web Worker to keep the interface responsive
+- Uses WebGPU when available, with a WASM fallback for compatibility
+- Uses the browser-optimized `studioludens/birefnet-lite-512` ONNX model, based on `ZhengPeng7/BiRefNet_lite` and the same BiRefNet architecture as the reference Space
+- Downloads approximately 94 MB of model files from Hugging Face on first use, then stores them in the browser cache
 
-## 本地开发
+## Local Development
 
 ```bash
 npm install
 npm run dev
 ```
 
-生产构建：
+Create a production build:
 
 ```bash
 npm run build
 ```
 
-构建结果位于 `dist/`。
+The generated files are written to `dist/`.
 
-## 模型与隐私
+## Model and Privacy
 
-模型文件从 Hugging Face 下载到浏览器缓存；用户选择的图片只在当前浏览器标签页和推理 Worker 中处理，不会被发送到本项目的服务器。
+Model files are downloaded from Hugging Face and stored in the browser cache. Images selected by the user are processed only in the current browser tab and its inference worker; they are not sent to this project's server.
 
-BiRefNet 论文：*Bilateral Reference for High-Resolution Dichotomous Image Segmentation*（Zheng et al., 2024）。模型与转换权重遵循各自仓库中的许可证。
+BiRefNet is described in *Bilateral Reference for High-Resolution Dichotomous Image Segmentation* (Zheng et al., 2024). The model and converted weights remain subject to the licenses in their respective repositories.
+
+## License
+
+Kou is released under the [MIT License](LICENSE).
